@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>RoboArm Web Control</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      button { margin: 4px; padding: 8px 12px; }
+      #log { white-space: pre-wrap; border: 1px solid #ccc; padding: 8px; height: 160px; overflow:auto; }
+    </style>
+  </head>
+  <body>
+    <h2>RoboArm Web Control</h2>
+    <div>
+      <button data-cmd="S">Base Left (S)</button>
+      <button data-cmd="O">Base Right (O)</button>
+      <button data-cmd="c">Shoulder Down (c)</button>
+      <button data-cmd="C">Shoulder Up (C)</button>
+      <button data-cmd="p">Elbow Down (p)</button>
+      <button data-cmd="P">Elbow Up (P)</button>
+      <button data-cmd="U">Wrist1 Up (U)</button>
+      <button data-cmd="G">Wrist1 Down (G)</button>
+      <button data-cmd="R">Wrist2 CW (R)</button>
+      <button data-cmd="L">Wrist2 CCW (L)</button>
+      <button data-cmd="F">Open Claw (F)</button>
+      <button data-cmd="f">Close Claw (f)</button>
+    </div>
+
+    <h3>Status</h3>
+    <div id="status">Disconnected</div>
+
+    <h3>Log / Notifications</h3>
+    <div id="log"></div>
+
+    <script>
+      const log = msg => {
+        const el = document.getElementById('log');
+        el.textContent = msg + '\n' + el.textContent;
+      };
+
+      const statusEl = document.getElementById('status');
+      let ws;
+      function connect() {
+        ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+        ws.onopen = () => { statusEl.textContent = 'Connected'; log('WS: connected'); };
+        ws.onclose = () => { statusEl.textContent = 'Disconnected'; log('WS: disconnected'); };
+        ws.onmessage = e => { log('Arduino: ' + e.data); };
+      }
+      connect();
+
+      document.querySelectorAll('button[data-cmd]').forEach(b => {
+        b.addEventListener('click', () => {
+          const cmd = b.getAttribute('data-cmd');
+          if (ws && ws.readyState === WebSocket.OPEN) ws.send(cmd);
+          log('Sent: ' + cmd);
+        });
+      });
+    </script>
+  </body>
+</html>

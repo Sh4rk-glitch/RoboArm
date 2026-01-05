@@ -80,6 +80,17 @@ int stepDelay = 4500;
 const int stepsPerRevolutionSmall = 60;
 int stepDelaySmall = 9500;
 
+// WEB INTERFACE
+// Control source flags
+bool webControlActive = false;
+bool gloveConnected = false;
+
+// Serial input buffer
+String serialBuf = "";
+
+// forward declaration
+void processState(char stateChar);
+// END WEB INTERFACE
 void setup()
 {
   // Declare pins as Outputs
@@ -265,8 +276,132 @@ void baseRotateRight() {
 }
 
 
+// WEB INTERFACE
 void loop() {
 
+  // Read incoming serial data into a line buffer (handles both single-char and line protocols)
+  while (Serial.available() > 0) {
+    char c = (char)Serial.read();
+    // accumulate until newline or carriage return
+    if (c == '\n' || c == '\r') {
+      if (serialBuf.length() > 0) {
+        // process a full line
+        String line = serialBuf;
+        serialBuf = "";
+        // Handle line-based commands and notifications
+        if (line.startsWith("!")) {
+          // Web commands or control messages (prefixed with '!')
+          String cmd = line.substring(1);
+          if (cmd == "WEB_ON") {
+            webControlActive = true;
+            Serial.println("ACK:WEB_ON");
+            continue;
+          }
+          if (cmd == "WEB_OFF") {
+            webControlActive = false;
+            Serial.println("ACK:WEB_OFF");
+            continue;
+          }
+          // Movement commands from web: expect single-char after '!'
+          if (cmd.length() >= 1) {
+            char st = cmd.charAt(0);
+            processState(st);
+            continue;
+          }
+        }
+
+        // Glove detection: if a glove handshake or keyword arrives, mark connected and notify
+        if (line.startsWith("GLOVE") || line == "G") {
+          gloveConnected = true;
+          Serial.println("NOTIFY:GLOVE_CONNECTED");
+          continue;
+        }
+
+        // If web control is active, ignore raw movement commands from other sources
+        if (!webControlActive && line.length() == 1) {
+          char st = line.charAt(0);
+          processState(st);
+        }
+      }
+    } else {
+      serialBuf += c;
+      if (serialBuf.length() > 64) serialBuf = serialBuf.substring(0, 64);
+    }
+  }
+}
+
+// Process a single-character command (previously inlined in loop)
+void processState(char stateChar) {
+  // echo the command for debugging/monitoring
+  Serial.print(stateChar);
+
+  if (stateChar == 'S') {
+    baseRotateLeft();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'O') {
+    baseRotateRight();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'c') {
+    shoulderServoForward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'C') {
+    shoulderServoBackward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'p') {
+    elbowServoForward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'P') {
+    elbowServoBackward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'U') {
+    wristServo1Backward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'G') {
+    wristServo1Forward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'R') {
+    wristServoCW();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'L') {
+    wristServoCCW();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'F') {
+    gripperServoBackward();
+    delay(response_time);
+    return;
+  }
+  if (stateChar == 'f') {
+    gripperServoForward();
+    delay(response_time);
+    return;
+  }
+}
+
+// END WEB INTERFACE
+
+// ORIGINAL CODE (COMMENTED OUT) - start
+/*
+void loop() {
 
   if (Serial.available() > 0) { // Checks whether data is coming from the serial port
 
@@ -370,6 +505,9 @@ void loop() {
 
   }
 }
+
+*/
+// ORIGINAL CODE (COMMENTED OUT) - end
 
 
 void wakeUp() {

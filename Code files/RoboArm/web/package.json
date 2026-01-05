@@ -1,0 +1,13 @@
+{
+  "name": "roboarm-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0",
+    "serialport": "^10.5.0"
+  }
+}
